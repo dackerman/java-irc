@@ -28,5 +28,5 @@ it, the community edition [can be downloaded for free](https://www.jetbrains.com
 1. clone the repo `git clone git@github.com:dackerman/java-irc`
 1. open intellij and import the project
 1. let it build (happens automatically)
-1. right-click on the `IrcMain` class and click `Run`
+1. right-click on the `com.dacklabs.irc.IrcMain` class and click `Run`
 1. Enjoy!
