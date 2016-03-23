@@ -20,7 +20,7 @@ public final class RandomNumberWatcher implements ChannelWatcher {
 
     public RandomNumberWatcher(String botName, IrcChannel channel) {
         this.channel = channel;
-        this.randomNumberRegex = Pattern.compile(".*" + botName + ".*random (\\d+).*");
+        this.randomNumberRegex = Pattern.compile(".*" + botName + ".*random ([^\\s]+).*");
     }
 
     @Override
