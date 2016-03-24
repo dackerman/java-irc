@@ -1,5 +1,6 @@
 package com.dacklabs.irc.core;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -81,6 +82,7 @@ public class InputStreamBroadcasterTest {
         assertThat(wasRemoved).isFalse();
     }
 
+    @Ignore
     @Test
     public void broadcasterCanBeStopped() throws InterruptedException {
         CharacterQueueInputStream stream = new CharacterQueueInputStream();
