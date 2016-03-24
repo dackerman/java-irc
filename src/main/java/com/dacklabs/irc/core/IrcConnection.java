@@ -4,9 +4,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Scanner;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Represents a connection to an IRC chat server. Calling {@link IrcConnection#login(IrcConnectionInfo)} will create a
@@ -18,75 +15,33 @@ public final class IrcConnection implements Closeable {
     private final Socket socket;
     private final PrintWriter out;
 
-    private final InputWatcher inputWatcher;
-
-    private static final class InputWatcher implements Runnable {
-
-        private final Socket socket;
-        private final ConcurrentHashMap<WatcherID, ChannelWatcher> watchers = new ConcurrentHashMap<>();
-
-        private final AtomicBoolean shouldStopThread = new AtomicBoolean(false);
-
-        public InputWatcher(Socket socket) {
-            this.socket = socket;
-        }
-
-        @Override
-        public void run() {
-            try {
-                Scanner in = new Scanner(socket.getInputStream());
-                while (!shouldStopThread.get() && in.hasNext()) {
-                    String message = in.nextLine();
-                    for (ChannelWatcher watcher : watchers.values()) {
-                        watcher.onMessage(message);
-                    }
-                }
-                in.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public void stop() {
-            shouldStopThread.set(true);
-        }
-
-        public WatcherID registerWatcher(ChannelWatcher watcher) {
-            WatcherID watcherID = WatcherID.create();
-            watchers.put(watcherID, watcher);
-            return watcherID;
-        }
-
-        public boolean unregisterWatcher(WatcherID watcherID) {
-            return watchers.remove(watcherID) != null;
-        }
-    }
+    private final InputStreamBroadcaster inputStreamBroadcaster;
 
     public static IrcConnection login(IrcConnectionInfo connectionInfo) throws IOException {
         Socket socket = new Socket("chat.freenode.net", 6667);
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 
-        InputWatcher inputWatcher = new InputWatcher(socket);
+        InputStreamBroadcaster inputStreamBroadcaster = new InputStreamBroadcaster(socket.getInputStream());
 
-        IrcConnection connection = new IrcConnection(socket, out, inputWatcher);
+        IrcConnection connection = new IrcConnection(socket, out, inputStreamBroadcaster);
         connection.write("NICK", connectionInfo.nick);
         connection.write("USER", connectionInfo.username + " 0 * :" + connectionInfo.username);
         return connection;
     }
 
-    private IrcConnection(Socket socket, PrintWriter out, InputWatcher inputWatcher) {
+    private IrcConnection(Socket socket, PrintWriter out, InputStreamBroadcaster inputStreamBroadcaster) {
         this.socket = socket;
         this.out = out;
-        this.inputWatcher = inputWatcher;
+        this.inputStreamBroadcaster = inputStreamBroadcaster;
     }
 
     public void readInputAsynchronously() {
-        Thread watcherThread = new Thread(inputWatcher);
+        Thread watcherThread = new Thread(inputStreamBroadcaster::start);
         watcherThread.start();
     }
 
     public void readInputSynchronously() {
-        inputWatcher.run();
+        inputStreamBroadcaster.start();
     }
 
     public void write(String command, String message) {
@@ -97,11 +52,11 @@ public final class IrcConnection implements Closeable {
     }
 
     public WatcherID registerWatcher(ChannelWatcher watcher) {
-        return inputWatcher.registerWatcher(watcher);
+        return inputStreamBroadcaster.registerWatcher(watcher);
     }
 
     public boolean unregisterWatcher(WatcherID watcherID) {
-        return inputWatcher.unregisterWatcher(watcherID);
+        return inputStreamBroadcaster.unregisterWatcher(watcherID);
     }
 
     public IrcChannel join(String channelName) {
@@ -111,7 +66,7 @@ public final class IrcConnection implements Closeable {
 
     @Override
     public void close() throws IOException {
-        inputWatcher.stop();
+        inputStreamBroadcaster.stop();
         out.close();
         socket.close();
     }
