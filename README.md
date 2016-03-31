@@ -1,6 +1,6 @@
 # Java IRC Client from scratch
 
-![Travis build status](https://travis-ci.org/dackerman/java-irc.svg)
+[![Build Status](https://travis-ci.org/dackerman/java-irc.svg?branch=master)](https://travis-ci.org/dackerman/java-irc)
 
 I'm building a Java IRC client from scratch and creating videos as I go. I
 learn really well by seeing examples, and following along with people that
