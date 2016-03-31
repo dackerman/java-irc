@@ -1,7 +1,7 @@
 package com.dacklabs.irc.watchers;
 
 import com.dacklabs.irc.core.ChannelWatcher;
-import com.dacklabs.irc.core.IrcChannel;
+import com.dacklabs.irc.core.IrcMessagePoster;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -15,12 +15,24 @@ import java.util.regex.Pattern;
  */
 public final class RandomNumberWatcher implements ChannelWatcher {
 
-    private final IrcChannel channel;
+    private final IrcMessagePoster channel;
     private final Pattern randomNumberRegex;
+    private final RNGSource rngSource;
 
-    public RandomNumberWatcher(String botName, IrcChannel channel) {
-        this.channel = channel;
+    /**
+     * Creates a new watcher that listens for messages to the given name, on the given channel.
+     *
+     * @param botName The name of the bot for which to respond to messages
+     * @param poster The channel in which to post messages to
+     */
+    public RandomNumberWatcher(String botName, IrcMessagePoster poster) {
+        this(botName, poster, new RandomRNGSource());
+    }
+
+    public RandomNumberWatcher(String botName, IrcMessagePoster poster, RNGSource rngSource) {
+        this.channel = poster;
         this.randomNumberRegex = Pattern.compile(".*" + botName + ".*random ([^\\s]+).*");
+        this.rngSource = rngSource;
     }
 
     @Override
@@ -29,12 +41,26 @@ public final class RandomNumberWatcher implements ChannelWatcher {
         if (matcher.matches()) {
             try {
                 BigDecimal bound = new BigDecimal(matcher.group(1));
-                double someRandomness = new Random().nextDouble();
+                double someRandomness = rngSource.nextDouble();
                 BigInteger random = bound.multiply(new BigDecimal(someRandomness)).toBigInteger();
                 channel.postMessage("Your random number is " + random);
             } catch (NumberFormatException e) {
                 channel.postMessage("Hmm, that didn't look like a number to me.");
             }
         }
+    }
+
+    private static final class RandomRNGSource implements RNGSource {
+
+        private final Random random = new Random();
+
+        @Override
+        public double nextDouble() {
+            return random.nextDouble();
+        }
+    }
+
+    public interface RNGSource {
+        double nextDouble();
     }
 }

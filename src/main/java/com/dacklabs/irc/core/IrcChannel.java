@@ -1,10 +1,10 @@
 package com.dacklabs.irc.core;
 
 /**
- * Represents a single IRC channel. It is created from {@link IrcConnection#join(String)} and allows the user to
+ * Represents a single IRC channel. It is created from {@link SocketIrcConnection#join(String)} and allows the user to
  * post to the channel and listen for messages there.
  */
-public final class IrcChannel {
+public final class IrcChannel implements IrcMessagePoster {
     private final IrcConnection ircConnection;
     private final String channelName;
 
@@ -25,6 +25,7 @@ public final class IrcChannel {
         ircConnection.unregisterWatcher(watcherID);
     }
 
+    @Override
     public void postMessage(String message) {
         ircConnection.write("PRIVMSG", channelName + " :" + message);
     }
